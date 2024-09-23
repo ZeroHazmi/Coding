@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using prasApi.Dtos.Police;
 using prasApi.Dtos.User;
 using prasApi.Interfaces;
 using prasApi.Models;
@@ -28,7 +29,7 @@ namespace prasApi.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginDto loginDto)
+        public async Task<IActionResult> Login(PoliceLoginDto loginDto)
         {
             if (!ModelState.IsValid)
             {
@@ -54,15 +55,8 @@ namespace prasApi.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+        public async Task<IActionResult> Register([FromBody] PoliceCreateDto registerDto)
         {
-             // Get the current logged-in user's username from claims
-             // Need to change so that only the admin can register a new police
-            // var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            // if (userId == null)
-            // {
-            //     return Unauthorized();
-            // }
 
             try
             {
@@ -74,18 +68,6 @@ namespace prasApi.Controllers
                     UserName = registerDto.Username,
                     Email = registerDto.Email,
                     IcNumber = registerDto.IcNumber,
-                    Birthday = DateOnly.Parse(registerDto.Birthday),
-                    Gender = registerDto.Gender,
-                    Nationality = registerDto.Nationality,
-                    Descendants = registerDto.Descendants,
-                    Religion = registerDto.Religion,
-                    PhoneNumber = registerDto.PhoneNumber,
-                    HousePhoneNumber = registerDto.House_Phone_Number,
-                    OfficePhoneNumber = registerDto.Office_Phone_Number,
-                    Address = registerDto.Address,
-                    Postcode = registerDto.Postcode,
-                    Region = registerDto.Region,
-                    State = registerDto.State
                 };
 
                 var createdUser = await _userManager.CreateAsync(appUser, registerDto.Password);
@@ -147,7 +129,7 @@ namespace prasApi.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPut("update")]
-        public async Task<IActionResult> Update([FromQuery] string username,[FromQuery] string password, [FromBody] UpdateUserDto updateUserDto)
+        public async Task<IActionResult> Update([FromQuery] string username, [FromQuery] string password, [FromBody] UpdateUserDto updateUserDto)
         {
             if (!ModelState.IsValid)
             {
@@ -182,6 +164,6 @@ namespace prasApi.Controllers
             }
             return NoContent();
         }
-        
+
     }
 }
