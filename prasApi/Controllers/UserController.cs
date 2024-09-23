@@ -35,17 +35,23 @@ namespace prasApi.Controllers
 
             var user = await _userManager.Users.FirstOrDefaultAsync(u => u.UserName == loginDto.Username.ToLower());
 
-            if (user == null) return Unauthorized("Invalid username");
+            if (user == null)
+            {
+                return Unauthorized(new { Success = false, Message = "Invalid username" });
+            }
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
 
-            if (!result.Succeeded) return Unauthorized("Username not found and/or password incorrect");
+            if (!result.Succeeded)
+            {
+                return Unauthorized(new { Success = false, Message = "Username not found and/or password incorrect" });
+            }
 
             return Ok(
                 new NewUserDto()
                 {
                     UserName = user.UserName,
-                    Token = _tokenService.CreateToken(user)
+                    Token = await _tokenService.CreateToken(user)
                 }
             );
         }
@@ -90,7 +96,7 @@ namespace prasApi.Controllers
                             new NewUserDto()
                             {
                                 UserName = appUser.UserName,
-                                Token = _tokenService.CreateToken(appUser)
+                                Token = await _tokenService.CreateToken(appUser)
                             }
                         );
                     }
@@ -135,7 +141,7 @@ namespace prasApi.Controllers
         }
 
         [HttpPut("update")]
-        public async Task<IActionResult> Update([FromQuery] string username,[FromQuery] string password, [FromBody] UpdateUserDto updateUserDto)
+        public async Task<IActionResult> Update([FromQuery] string username, [FromQuery] string password, [FromBody] UpdateUserDto updateUserDto)
         {
             if (!ModelState.IsValid)
             {

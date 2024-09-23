@@ -88,12 +88,35 @@ builder.Services.AddAuthentication(options =>
 
 });
 
+// builder.Services.AddCors(options =>
+// {
+//     options.AddPolicy("AllowSpecificOrigin", policyBuilder =>
+//     {
+//         policyBuilder.WithOrigins("http://localhost:3000")  // Only allow from specific origin
+//             .AllowAnyMethod() // Allows all HTTP methods including OPTIONS
+//             .AllowAnyHeader() // Allows any headers
+//             .AllowCredentials() // If you are using credentials (e.g. cookies or tokens)
+//             .SetIsOriginAllowed(origin => true)  // Optional: more flexibility
+//             .WithExposedHeaders("Access-Control-Allow-Origin"); // Expose specific headers
+//     });
+// });
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policyBuilder =>
+    {
+        policyBuilder.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
+
 // Add repository here
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IReportTypeRepository, ReportTypeRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportDetailRepository, ReportDetailRepository>();
-
+builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 
 var app = builder.Build();
 
@@ -103,6 +126,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Enable CORS for the AllowAll policy
+//app.UseCors("AllowSpecificOrigin");
+app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
 

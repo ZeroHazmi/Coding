@@ -47,7 +47,7 @@ namespace prasApi.Controllers
                 new NewUserDto()
                 {
                     UserName = user.UserName,
-                    Token = _tokenService.CreateToken(user)
+                    Token = await _tokenService.CreateToken(user)
                 }
             );
         }
@@ -100,7 +100,7 @@ namespace prasApi.Controllers
                             new NewUserDto()
                             {
                                 UserName = appUser.UserName,
-                                Token = _tokenService.CreateToken(appUser)
+                                Token = await _tokenService.CreateToken(appUser)
                             }
                         );
                     }
