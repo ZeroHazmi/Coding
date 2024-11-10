@@ -31,11 +31,21 @@ namespace prasApi.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string status = null)
         {
-            var reportTypes = await _reportRepository.GetAllAsync();
-            var reportTypeDto = reportTypes.Select(x => x.ToReportDto());
-            return Ok(reportTypeDto);
+            // Retrieve all reports
+            var reports = await _reportRepository.GetAllAsync();
+
+            // If status query parameter is provided, filter reports by the specified status
+            if (!string.IsNullOrEmpty(status))
+            {
+                reports = reports.Where(r => string.Equals(r.Status.ToString(), status, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            // Map the filtered reports to DTOs
+            var reportDtos = reports.Select(x => x.ToReportDto());
+
+            return Ok(reportDtos);
         }
 
         [HttpGet("{id}")]
@@ -61,8 +71,6 @@ namespace prasApi.Controllers
             {
                 return Unauthorized();
             }
-
-            //Console.WriteLine($"User ID: {userId}");
 
             var reportDetail = new ReportDetail
             {
@@ -116,6 +124,22 @@ namespace prasApi.Controllers
 
             var updatedReportType = await _reportRepository.UpdateAsync(id, report);
             return Ok(updatedReportType);
+        }
+
+        [Authorize(Roles = "Admin, Police")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            // Check if the report exists
+            var reportExist = await _reportRepository.GetByIdAsync(id);
+            if (reportExist == null)
+            {
+                return NotFound();
+            }
+
+            // Perform the deletion
+            await _reportRepository.DeleteAsync(id);
+            return NoContent();
         }
     }
 }

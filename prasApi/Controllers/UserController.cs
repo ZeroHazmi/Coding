@@ -63,6 +63,29 @@ namespace prasApi.Controllers
             return Ok(userDto);
         }
 
+        [HttpGet("getIcNumber/{IcNumber}")]
+        public async Task<IActionResult> GetUserByIcNumber(string IcNumber)
+        {
+            if (string.IsNullOrEmpty(IcNumber))
+            {
+                return BadRequest("IC Number is required.");
+            }
+
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.IcNumber == IcNumber);
+
+            if (user == null)
+            {
+                return NotFound(new { Message = "User not found" });
+            }
+
+            // Return the user details (you can customize the fields as needed)
+            var userDto = new IcNumberDto
+            {
+                userId = user.Id
+            };
+            return Ok(userDto);
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
