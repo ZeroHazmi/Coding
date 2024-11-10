@@ -20,12 +20,17 @@ namespace prasApi.Services
         public TokenService(IConfiguration configuration, UserManager<AppUser> userManager)
         {
             _configuration = configuration;
-            _securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:SigningKey"]));
+            _securityKey = new SymmetricSecurityKey(Convert.FromBase64String(_configuration["JWT:SigningKey"]));
             _userManager = userManager;
         }
         public async Task<string> CreateToken(AppUser user)
         {
             var role = await GetUserRole(user);
+            if (string.IsNullOrEmpty(role))
+            {
+                Console.WriteLine("No role found for user.");
+                return null;
+            }
             if (role == null) return null;
 
             var claims = new List<Claim>
@@ -35,7 +40,7 @@ namespace prasApi.Services
                 new Claim(ClaimTypes.Role, role)
             };
 
-            var creds = new SigningCredentials(_securityKey, SecurityAlgorithms.HmacSha512Signature);
+            var creds = new SigningCredentials(_securityKey, SecurityAlgorithms.HmacSha256Signature);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -57,7 +62,8 @@ namespace prasApi.Services
         {
             var userInfo = await _userManager.FindByIdAsync(user.Id);
             if (userInfo == null) return null;
-            else{
+            else
+            {
                 var roles = await _userManager.GetRolesAsync(userInfo);
                 return roles.FirstOrDefault();
             }

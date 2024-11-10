@@ -25,6 +25,44 @@ namespace prasApi.Controllers
             _userManager = userManager;
         }
 
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetUser(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("UserId is required.");
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound(new { Message = "User not found" });
+            }
+
+            // Return the user details (you can customize the fields as needed)
+            var userDto = new UserDto
+            {
+                Username = user.UserName,
+                Email = user.Email,
+                IcNumber = user.IcNumber,
+                Birthday = user.Birthday.ToString(),
+                Gender = user.Gender,
+                Nationality = user.Nationality,
+                Descendants = user.Descendants,
+                Religion = user.Religion,
+                PhoneNumber = user.PhoneNumber,
+                House_Phone_Number = user.HousePhoneNumber,
+                Office_Phone_Number = user.OfficePhoneNumber,
+                Address = user.Address,
+                Postcode = user.Postcode,
+                Region = user.Region,
+                State = user.State
+            };
+
+            return Ok(userDto);
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
@@ -41,17 +79,22 @@ namespace prasApi.Controllers
             }
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
+            Console.WriteLine($"Result: Succeeded = {result.Succeeded}, IsLockedOut = {result.IsLockedOut}, IsNotAllowed = {result.IsNotAllowed}, RequiresTwoFactor = {result.RequiresTwoFactor}");
 
             if (!result.Succeeded)
             {
                 return Unauthorized(new { Success = false, Message = "Username not found and/or password incorrect" });
             }
 
+            var Token = await _tokenService.CreateToken(user);
+            Console.WriteLine($"Token: {Token}");
+
+
             return Ok(
                 new NewUserDto()
                 {
                     UserName = user.UserName,
-                    Token = await _tokenService.CreateToken(user)
+                    Token = Token
                 }
             );
         }
@@ -63,7 +106,10 @@ namespace prasApi.Controllers
             try
             {
                 if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+                {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                    return BadRequest(new { message = "Validation failed", errors });
+                }
 
                 var appUser = new AppUser
                 {

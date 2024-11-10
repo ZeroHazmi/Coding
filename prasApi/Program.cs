@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -66,40 +67,27 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme =
-    options.DefaultChallengeScheme =
-    options.DefaultForbidScheme =
-    options.DefaultScheme =
-    options.DefaultSignInScheme =
-    options.DefaultSignOutScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        ValidIssuer = builder.Configuration["JWT:Issuer"],
+        ValidIssuer = builder.Configuration["JWT:Issuer"], // Set your issuer
         ValidateAudience = true,
-        ValidAudience = builder.Configuration["JWT:Audience"],
+        ValidAudience = builder.Configuration["JWT:Audience"], // Set your audience
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(
-            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["JWT:SigningKey"])
-        )
+            Convert.FromBase64String(builder.Configuration["JWT:SigningKey"]) // Your signing key
+        ),
+        ValidateLifetime = true, // Optional: validate token expiration
+        ClockSkew = TimeSpan.Zero, // Optional: set clock skew
     };
+    options.IncludeErrorDetails = true; // To include detailed error messages in responses
 
 });
-
-// builder.Services.AddCors(options =>
-// {
-//     options.AddPolicy("AllowSpecificOrigin", policyBuilder =>
-//     {
-//         policyBuilder.WithOrigins("http://localhost:3000")  // Only allow from specific origin
-//             .AllowAnyMethod() // Allows all HTTP methods including OPTIONS
-//             .AllowAnyHeader() // Allows any headers
-//             .AllowCredentials() // If you are using credentials (e.g. cookies or tokens)
-//             .SetIsOriginAllowed(origin => true)  // Optional: more flexibility
-//             .WithExposedHeaders("Access-Control-Allow-Origin"); // Expose specific headers
-//     });
-// });
 
 builder.Services.AddCors(options =>
 {
@@ -128,7 +116,6 @@ if (app.Environment.IsDevelopment())
 }
 
 // Enable CORS for the AllowAll policy
-//app.UseCors("AllowSpecificOrigin");
 app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();

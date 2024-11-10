@@ -50,7 +50,7 @@ namespace prasApi.Controllers
             return Ok(reportType);
         }
 
-        [Authorize]
+        [Authorize(Roles = "User, Police, Admin")]
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] ReportCreateDto reportCreateDto)
         {
@@ -67,9 +67,13 @@ namespace prasApi.Controllers
             var reportDetail = new ReportDetail
             {
                 ReportTypeId = reportCreateDto.ReportDetail.ReportTypeId,
+                Date = reportCreateDto.ReportDetail.Date,
+                Location = reportCreateDto.ReportDetail.Location,
+                Time = reportCreateDto.ReportDetail.Time,
                 FieldValue = reportCreateDto.ReportDetail.FieldValue,
                 Audio = reportCreateDto.ReportDetail.Audio,
-                Image = reportCreateDto.ReportDetail.Image
+                Image = reportCreateDto.ReportDetail.Image,
+                Transcript = reportCreateDto.ReportDetail.Transcript
             };
 
             var createdReportDetail = await _reportDetailRepository.CreateAsync(reportDetail);
@@ -113,7 +117,5 @@ namespace prasApi.Controllers
             var updatedReportType = await _reportRepository.UpdateAsync(id, report);
             return Ok(updatedReportType);
         }
-
-
     }
 }
