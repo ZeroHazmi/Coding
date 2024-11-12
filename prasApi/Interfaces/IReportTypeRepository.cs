@@ -8,7 +8,7 @@ namespace prasApi.Interfaces
 {
     public interface IReportTypeRepository
     {
-        Task<List<ReportType>> GetAllAsync();
+        Task<List<ReportType>> GetAllAsync(bool? isOnline = null);
         Task<ReportType?> GetByIdAsync(int id);
         Task<ReportType> CreateAsync(ReportType reportType);
         Task<ReportType?> UpdateAsync(int id, ReportType reportType);

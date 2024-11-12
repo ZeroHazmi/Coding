@@ -10,6 +10,7 @@ namespace prasApi.Models
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public bool IsOnlineAllowed { get; set; } // True if allowed for online submission
         public string TemplateStructure { get; set; } = string.Empty; // Change sql datatype to json in DBContext
     }
 }

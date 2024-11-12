@@ -36,9 +36,34 @@ namespace prasApi.Repository
             return report;
         }
 
-        public async Task<List<Report>> GetAllAsync()
+        public async Task<List<Report>> GetAllAsync(Status? status = null, Priority? priority = null, DateTime? createdDate = null, string sortOrder = "asc")
         {
-            return await _context.Reports.ToListAsync();
+            // Start with the base query
+            var query = _context.Reports.AsQueryable();
+
+            // Apply filters based on provided parameters
+            if (status.HasValue)
+            {
+                query = query.Where(r => r.Status == status.Value);
+            }
+
+            if (priority.HasValue)
+            {
+                query = query.Where(r => r.Priority == priority.Value);
+            }
+
+            // Apply sorting by CreatedAt in ascending or descending order
+            if (sortOrder.ToLower() == "desc")
+            {
+                query = query.OrderByDescending(r => r.CreatedAt);
+            }
+            else
+            {
+                query = query.OrderBy(r => r.CreatedAt);
+            }
+
+            // Execute the query and return the filtered list
+            return await query.ToListAsync();
         }
 
         public async Task<Report?> GetByIdAsync(int id)

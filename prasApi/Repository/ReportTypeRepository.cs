@@ -37,9 +37,17 @@ namespace prasApi.Repository
             return reportType;
         }
 
-        public async Task<List<ReportType>> GetAllAsync()
+        public async Task<List<ReportType>> GetAllAsync(bool? isOnline = null)
         {
-            return await _context.ReportTypes.ToListAsync();
+            var query = _context.ReportTypes.AsQueryable();
+
+            // Apply filter if isOnline is specified
+            if (isOnline.HasValue)
+            {
+                query = query.Where(rt => rt.IsOnlineAllowed == isOnline.Value);
+            }
+
+            return await query.ToListAsync();
         }
 
         public async Task<ReportType?> GetByIdAsync(int id)

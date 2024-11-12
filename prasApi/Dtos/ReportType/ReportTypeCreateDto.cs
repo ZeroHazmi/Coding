@@ -14,6 +14,8 @@ namespace prasApi.Dtos.ReportType
         [Required]
         public string Description { get; set; } = string.Empty;
         [Required]
+        public bool IsOnlineAllowed { get; set; }
+        [Required]
         public TemplateStructure TemplateStructure { get; set; } = new TemplateStructure();
     }
 }

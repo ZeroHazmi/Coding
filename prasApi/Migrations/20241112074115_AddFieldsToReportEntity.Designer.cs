@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using prasApi.Data;
@@ -11,9 +12,11 @@ using prasApi.Data;
 namespace prasApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241112074115_AddFieldsToReportEntity")]
+    partial class AddFieldsToReportEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,19 +53,19 @@ namespace prasApi.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "c0b6f2a5-566c-4919-a1d3-37dd3dd7a401",
+                            Id = "149295af-251f-40c3-95b2-012531fdcc8e",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "85e8305a-2383-4419-98bd-01e11d851070",
+                            Id = "4df99368-d65a-403c-8205-f37e29ec3aeb",
                             Name = "Police",
                             NormalizedName = "POLICE"
                         },
                         new
                         {
-                            Id = "fc1427a8-78c3-4b19-89f0-8b29dfa0a751",
+                            Id = "bd510879-cf0d-4a49-8143-907fe1495991",
                             Name = "User",
                             NormalizedName = "USER"
                         });

@@ -31,16 +31,28 @@ namespace prasApi.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string status = null)
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? status = null,
+            [FromQuery] string? priority = null,
+            [FromQuery] DateTime? createdDate = null,
+            [FromQuery] string sortOrder = "asc")
         {
-            // Retrieve all reports
-            var reports = await _reportRepository.GetAllAsync();
+            // Parse the status and priority strings into enums if they are provided
+            Status? parsedStatus = null;
+            Priority? parsedPriority = null;
 
-            // If status query parameter is provided, filter reports by the specified status
-            if (!string.IsNullOrEmpty(status))
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse(status, true, out Status statusValue))
             {
-                reports = reports.Where(r => string.Equals(r.Status.ToString(), status, StringComparison.OrdinalIgnoreCase)).ToList();
+                parsedStatus = statusValue;
             }
+
+            if (!string.IsNullOrEmpty(priority) && Enum.TryParse(priority, true, out Priority priorityValue))
+            {
+                parsedPriority = priorityValue;
+            }
+
+            // Retrieve all reports based on the filters and sort order
+            var reports = await _reportRepository.GetAllAsync(parsedStatus, parsedPriority, createdDate, sortOrder);
 
             // Map the filtered reports to DTOs
             var reportDtos = reports.Select(x => x.ToReportDto());
@@ -64,42 +76,87 @@ namespace prasApi.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] ReportCreateDto reportCreateDto)
         {
-
-            // Get the current logged-in user's username from claims
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
+            // Validate the incoming DTO
+            if (reportCreateDto == null || reportCreateDto.ReportDetail == null)
             {
-                return Unauthorized();
+                return BadRequest("Invalid report data.");
             }
 
+            // Get the current logged-in user's username from claims
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get user ID from the JWT token
+
+            // Get the user's roles from claims
+            var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+
+            // Retrieve all users in the "Police" role
+            var policeOfficers = await _userManager.GetUsersInRoleAsync("Police");
+
+            if (policeOfficers.Count == 0)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "No police officers available to assign.");
+            }
+
+            // Assign a random police officer to handle the report
+            string assignedOfficerId = policeOfficers[new Random().Next(policeOfficers.Count)].Id;
+
+            // Initialize the IC number
+            string icNumber = null;
+
+            if (roles.Contains("Police"))
+            {
+                // If a police officer is submitting the report, the IC number may be required
+                if (string.IsNullOrWhiteSpace(reportCreateDto.IcNumber))
+                {
+                    return BadRequest("IC number is required for reports submitted at the police station.");
+                }
+                else
+                {
+                    icNumber = reportCreateDto.IcNumber ?? string.Empty;
+                }
+            }
+            else if (roles.Contains("User"))
+            {
+                // If the user is submitting the report, assign IC number if provided
+                icNumber = reportCreateDto.IcNumber;
+            }
+
+            // Create the ReportDetail from DTO
             var reportDetail = new ReportDetail
             {
                 ReportTypeId = reportCreateDto.ReportDetail.ReportTypeId,
                 Date = reportCreateDto.ReportDetail.Date,
-                Location = reportCreateDto.ReportDetail.Location,
                 Time = reportCreateDto.ReportDetail.Time,
+                Address = reportCreateDto.ReportDetail.Address,  // Ensure Address is passed in DTO
+                Latitude = reportCreateDto.ReportDetail.Latitude,
+                Longitude = reportCreateDto.ReportDetail.Longitude,
                 FieldValue = reportCreateDto.ReportDetail.FieldValue,
                 Audio = reportCreateDto.ReportDetail.Audio,
                 Image = reportCreateDto.ReportDetail.Image,
                 Transcript = reportCreateDto.ReportDetail.Transcript
             };
 
+            // Create the ReportDetail in the database
             var createdReportDetail = await _reportDetailRepository.CreateAsync(reportDetail);
 
-            //Create the ReportType object
+            // Create the Report object from the DTO and associate with created ReportDetail
             var report = new Report
             {
-                UserId = userId,
+                UserId = userId,  // User ID (could be null for anonymous users)
                 ReportTypeId = reportCreateDto.ReportTypeId,
                 Status = reportCreateDto.Status,
                 Priority = reportCreateDto.Priority,
-                AppUserId = userId,
-                ReportDetailId = createdReportDetail.Id
+                AppUserId = assignedOfficerId,  // The officer handling the report
+                ReportDetailId = createdReportDetail.Id,
+                IcNumber = icNumber  // Set the IC number if available
             };
 
+            // Create the Report in the database
             var createdReport = await _reportRepository.CreateAsync(report);
+
+            // Return the created report object with a CreatedAtAction response
             return CreatedAtAction(nameof(GetById), new { id = createdReport.Id }, createdReport);
         }
+
 
         [Authorize]
         [HttpPut("{id}")]

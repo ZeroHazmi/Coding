@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using prasApi.Models;
 
 namespace prasApi.Data
@@ -32,6 +33,8 @@ namespace prasApi.Data
                 new IdentityRole { Name = "User", NormalizedName = "USER" }
             };
 
+
+
             builder.Entity<IdentityRole>().HasData(roles);
 
             builder.Entity<AppUser>(entity =>
@@ -54,14 +57,17 @@ namespace prasApi.Data
 
             builder.Entity<ReportType>(entity =>
             {
-                entity.Property(e => e.TemplateStructure).HasColumnType("json");
+                entity.Property(e => e.TemplateStructure).HasColumnType("jsonb");
             });
 
             builder.Entity<ReportDetail>(entity =>
             {
-                entity.Property(e => e.FieldValue).HasColumnType("json");
+                entity.Property(e => e.FieldValue).HasColumnType("jsonb");
             });
         }
 
     }
+
+    
 }
+

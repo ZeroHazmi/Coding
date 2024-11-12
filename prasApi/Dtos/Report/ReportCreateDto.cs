@@ -16,6 +16,10 @@ namespace prasApi.Dtos.Report
         public Status Status { get; set; } = Status.Open;
         [Required]
         public Priority Priority { get; set; } = Priority.Low;
+        public string AppUserId { get; set; } = string.Empty; // Police officer ID
+
+        // Nullable IC number for unregistered users
+        public string? IcNumber { get; set; }
 
         // Navigation Properties
         public ReportDetailCreateDto ReportDetail { get; set; }

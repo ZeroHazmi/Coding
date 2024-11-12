@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using prasApi.Data;
 using prasApi.Interfaces;
+using prasApi.Migrations;
 using prasApi.Models;
 using prasApi.Repository;
 using prasApi.Services;

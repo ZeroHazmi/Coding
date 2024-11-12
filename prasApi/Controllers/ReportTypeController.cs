@@ -24,12 +24,17 @@ namespace prasApi.Controllers
 
         // Not finished - need to add parameters so that the user can filter the report types
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] bool? isOnline = null)
         {
-            var reportTypes = await _reportTypeRepository.GetAllAsync();
-            var reportTypeDto = reportTypes.Select(x => x.ToReportTypeDto());
-            return Ok(reportTypeDto);
+            // Pass the isOnline parameter to the repository method for filtering
+            var reportTypes = await _reportTypeRepository.GetAllAsync(isOnline);
+
+            // Map the filtered report types to DTOs
+            var reportTypeDtos = reportTypes.Select(x => x.ToReportTypeDto());
+
+            return Ok(reportTypeDtos);
         }
+
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
@@ -54,6 +59,7 @@ namespace prasApi.Controllers
             {
                 Name = reportTypeCreateDto.Name,
                 Description = reportTypeCreateDto.Description,
+                IsOnlineAllowed = reportTypeCreateDto.IsOnlineAllowed,
                 TemplateStructure = serializedTemplateStructure
             };
 
@@ -81,5 +87,7 @@ namespace prasApi.Controllers
             var updatedReportType = await _reportTypeRepository.UpdateAsync(id, reportType);
             return Ok(updatedReportType);
         }
+
+
     }
 }

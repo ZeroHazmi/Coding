@@ -165,5 +165,38 @@ namespace prasApi.Controllers
             return NoContent();
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAll()
+        {
+            try
+            {
+                // Get all users with the "Police" role
+                var users = await _userManager.Users.ToListAsync();
+                var policeUsers = users
+                    .Where(u => _userManager.GetRolesAsync(u).Result.Contains("Police"))
+                    .ToList();
+
+                if (policeUsers == null || !policeUsers.Any())
+                {
+                    return NotFound("No police users found.");
+                }
+
+                // Map the users to a list of PoliceDto
+                var policeDtos = policeUsers.Select(u => new PoliceDto
+                {
+                    Username = u.UserName,
+                    Email = u.Email,
+                    IcNumber = u.IcNumber,
+                    // You can add more properties if needed
+                }).ToList();
+
+                return Ok(policeDtos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }
