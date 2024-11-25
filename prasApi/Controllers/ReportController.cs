@@ -129,6 +129,7 @@ namespace prasApi.Controllers
                 Address = reportCreateDto.ReportDetail.Address,  // Ensure Address is passed in DTO
                 Latitude = reportCreateDto.ReportDetail.Latitude,
                 Longitude = reportCreateDto.ReportDetail.Longitude,
+                State = reportCreateDto.ReportDetail.State,
                 FieldValue = reportCreateDto.ReportDetail.FieldValue,
                 Audio = reportCreateDto.ReportDetail.Audio,
                 Image = reportCreateDto.ReportDetail.Image,

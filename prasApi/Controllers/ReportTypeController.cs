@@ -26,7 +26,6 @@ namespace prasApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] bool? isOnline = null)
         {
-            // Pass the isOnline parameter to the repository method for filtering
             var reportTypes = await _reportTypeRepository.GetAllAsync(isOnline);
 
             // Map the filtered report types to DTOs

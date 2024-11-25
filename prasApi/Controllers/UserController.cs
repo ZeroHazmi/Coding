@@ -44,6 +44,7 @@ namespace prasApi.Controllers
             var userDto = new UserDto
             {
                 Username = user.UserName,
+                Name = user.Name,
                 Email = user.Email,
                 IcNumber = user.IcNumber,
                 Birthday = user.Birthday.ToString(),
@@ -61,6 +62,51 @@ namespace prasApi.Controllers
             };
 
             return Ok(userDto);
+        }
+
+        [HttpGet("getusers")]
+        public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] string? gender)
+        {
+            // Retrieve all users
+            var users = await _userManager.Users.ToListAsync();
+
+            // Apply search filter if provided
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.ToLower();
+                users = users.Where(user =>
+                    (!string.IsNullOrEmpty(user.UserName) && user.UserName.ToLower().Contains(search)) ||
+                    (!string.IsNullOrEmpty(user.Name) && user.Name.ToLower().Contains(search))
+                ).ToList();
+            }
+
+            // Apply gender filter if provided
+            if (!string.IsNullOrWhiteSpace(gender) && gender.ToLower() != "all")
+            {
+                // Parse the gender string into the Gender enum
+                if (Enum.TryParse(typeof(Gender), gender, true, out var genderEnum))
+                {
+                    users = users.Where(user => user.Gender == (Gender)genderEnum).ToList();
+                }
+                else
+                {
+                    return BadRequest($"Invalid gender value: {gender}");
+                }
+            }
+
+            // Map users to a DTO for frontend compatibility
+            var userDtos = users.Select(user => new
+            {
+                id = user.Id,               // Match TypeScript `id` field
+                username = user.UserName,   // Match TypeScript `username` field
+                name = user.Name,           // Match TypeScript `name` field
+                icNumber = user.IcNumber,   // Match TypeScript `icNumber` field
+                email = user.Email,         // Match TypeScript `email` field
+                age = DateTime.Now.Year - user.Birthday.Year, // Calculate age
+                gender = user.Gender        // Match TypeScript `gender` field
+            }).ToList();
+
+            return Ok(userDtos);
         }
 
         [HttpGet("getIcNumber/{IcNumber}")]
@@ -125,7 +171,6 @@ namespace prasApi.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
-
             try
             {
                 if (!ModelState.IsValid)
@@ -137,6 +182,7 @@ namespace prasApi.Controllers
                 var appUser = new AppUser
                 {
                     UserName = registerDto.Username,
+                    Name = registerDto.Name,
                     Email = registerDto.Email,
                     IcNumber = registerDto.IcNumber,
                     Birthday = DateOnly.Parse(registerDto.Birthday),

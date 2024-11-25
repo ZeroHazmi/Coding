@@ -45,7 +45,14 @@ namespace prasApi.Repository
             if (isOnline.HasValue)
             {
                 query = query.Where(rt => rt.IsOnlineAllowed == isOnline.Value);
+                Console.WriteLine($"Filtering by IsOnlineAllowed = {isOnline.Value}"); // Debug log
             }
+            else
+            {
+                Console.WriteLine("No filter applied for IsOnlineAllowed"); // Debug log
+            }
+
+            Console.WriteLine($"Query: {query.ToQueryString()}"); // Debug log
 
             return await query.ToListAsync();
         }

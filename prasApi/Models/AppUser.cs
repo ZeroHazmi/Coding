@@ -10,6 +10,7 @@ namespace prasApi.Models
     public class AppUser : IdentityUser
     {
         // Properties specific to User Only
+        public string Name { get; set; } = string.Empty;
         public string IcNumber { get; set; } = string.Empty;
         public DateOnly Birthday { get; set; }
         public Gender Gender { get; set; }

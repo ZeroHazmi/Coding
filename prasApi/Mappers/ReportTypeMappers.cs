@@ -15,7 +15,8 @@ namespace prasApi.Mappers
             {
                 Id = reportType.Id,
                 Name = reportType.Name,
-                Description = reportType.Description
+                Description = reportType.Description,
+                IsOnlineAllowed = reportType.IsOnlineAllowed,
             };
         }
     }

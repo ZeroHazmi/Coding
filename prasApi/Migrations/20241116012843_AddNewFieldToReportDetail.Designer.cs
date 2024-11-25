@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using prasApi.Data;
@@ -11,9 +12,11 @@ using prasApi.Data;
 namespace prasApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241116012843_AddNewFieldToReportDetail")]
+    partial class AddNewFieldToReportDetail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,19 +53,19 @@ namespace prasApi.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "831747dc-c095-469f-a89e-d6bb25bf1565",
+                            Id = "d31b9451-7a4b-4381-b217-cdb0bdd48982",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "27220d41-5fb5-474d-aff5-e842471b7fac",
+                            Id = "018b7a94-4771-46d7-b800-4dec2b8a192b",
                             Name = "Police",
                             NormalizedName = "POLICE"
                         },
                         new
                         {
-                            Id = "f6df551b-8aac-4844-b613-68a9ec04d769",
+                            Id = "ba403959-2a89-4fbd-8ff3-30078c5cd562",
                             Name = "User",
                             NormalizedName = "USER"
                         });
@@ -221,10 +224,6 @@ namespace prasApi.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<string>("Nationality")
                         .IsRequired()

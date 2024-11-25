@@ -66,8 +66,11 @@ namespace prasApi.Controllers
                 var appUser = new AppUser
                 {
                     UserName = registerDto.Username,
+                    Name = registerDto.Name,
                     Email = registerDto.Email,
                     IcNumber = registerDto.IcNumber,
+                    Gender = registerDto.Gender
+
                 };
 
                 var createdUser = await _userManager.CreateAsync(appUser, registerDto.Password);
@@ -104,7 +107,7 @@ namespace prasApi.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpDelete("delete")]
-        public async Task<IActionResult> Delete(string userId)
+        public async Task<IActionResult> Delete([FromQuery] string userId)
         {
             if (!ModelState.IsValid)
             {
