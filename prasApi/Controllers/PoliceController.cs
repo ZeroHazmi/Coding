@@ -170,7 +170,7 @@ namespace prasApi.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpGet("all")]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string? gender = null)
         {
             try
             {
@@ -185,12 +185,31 @@ namespace prasApi.Controllers
                     return NotFound("No police users found.");
                 }
 
+                // Apply gender filter if provided
+                if (!string.IsNullOrWhiteSpace(gender) && gender.ToLower() != "all")
+                {
+                    // Ensure gender matches the enum values
+                    if (Enum.TryParse(typeof(Gender), gender, true, out var genderEnum))
+                    {
+                        // Filter police users by gender
+                        policeUsers = policeUsers
+                            .Where(user => user.Gender == (Gender)genderEnum)
+                            .ToList();
+                    }
+                    else
+                    {
+                        return BadRequest($"Invalid gender value: {gender}");
+                    }
+                }
+
                 // Map the users to a list of PoliceDto
                 var policeDtos = policeUsers.Select(u => new PoliceDto
                 {
-                    Username = u.UserName,
-                    Email = u.Email,
+                    Id = u.Id,
+                    Name = u.Name,
                     IcNumber = u.IcNumber,
+                    Email = u.Email,
+                    Gender = u.Gender
                     // You can add more properties if needed
                 }).ToList();
 

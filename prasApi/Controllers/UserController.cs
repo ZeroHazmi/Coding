@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using prasApi.Dtos.User;
 using prasApi.Interfaces;
 using prasApi.Models;
+using prasApi.Helpers;
 
 namespace prasApi.Controllers
 {
@@ -65,10 +62,13 @@ namespace prasApi.Controllers
         }
 
         [HttpGet("getusers")]
-        public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] string? gender)
+        public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] string? gender, [FromQuery] string? sortOrder = "asc")
         {
             // Retrieve all users
             var users = await _userManager.Users.ToListAsync();
+            users = users
+                    .Where(u => _userManager.GetRolesAsync(u).Result.Contains("User"))
+                    .ToList();
 
             // Apply search filter if provided
             if (!string.IsNullOrWhiteSpace(search))
@@ -94,16 +94,26 @@ namespace prasApi.Controllers
                 }
             }
 
-            // Map users to a DTO for frontend compatibility
-            var userDtos = users.Select(user => new
+            // Apply sorting based on the 'sortOrder' parameter
+            if (sortOrder!.ToLower() == "desc")
             {
-                id = user.Id,               // Match TypeScript `id` field
-                username = user.UserName,   // Match TypeScript `username` field
-                name = user.Name,           // Match TypeScript `name` field
-                icNumber = user.IcNumber,   // Match TypeScript `icNumber` field
-                email = user.Email,         // Match TypeScript `email` field
-                age = DateTime.Now.Year - user.Birthday.Year, // Calculate age
-                gender = user.Gender        // Match TypeScript `gender` field
+                users = users.OrderByDescending(user => user.Name).ToList();
+            }
+            else // Default to ascending
+            {
+                users = users.OrderBy(user => user.Name).ToList();
+            }
+
+            // Map users to a DTO for frontend compatibility
+            var userDtos = users.Select(user => new SelectUserDto
+            {
+                Id = user.Id,               // Match TypeScript `id` field
+                Username = user.UserName,   // Match TypeScript `username` field
+                Name = user.Name,           // Match TypeScript `name` field
+                IcNumber = user.IcNumber,   // Match TypeScript `icNumber` field
+                Email = user.Email,         // Match TypeScript `email` field
+                Age = Calculation.CalculateAge(user.Birthday), // Calculate age
+                Gender = user.Gender        // Match TypeScript `gender` field
             }).ToList();
 
             return Ok(userDtos);
