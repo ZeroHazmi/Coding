@@ -53,7 +53,7 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnections"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("ServerConnection"));
 });
 
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
@@ -111,11 +111,12 @@ builder.Services.AddScoped<IIncidentRepository, IncidentRepository>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Production API V1");
+    options.RoutePrefix = string.Empty;
+});
 
 // Enable CORS for the AllowAll policy
 app.UseCors("AllowAll");

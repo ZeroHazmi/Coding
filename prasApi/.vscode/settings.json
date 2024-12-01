@@ -1,0 +1,5 @@
+{
+    "appService.preDeployTask": "publish-release",
+    "appService.deploySubpath": "bin\\Release\\net8.0\\publish",
+    "appService.defaultWebAppToDeploy": "/subscriptions/35c6fece-a149-4a7a-915e-e5162301c732/resourceGroups/fyp/providers/Microsoft.Web/sites/pras"
+}
