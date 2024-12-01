@@ -13,15 +13,14 @@ namespace prasApi.Repository
     {
         private readonly ApplicationDbContext _context;
 
-
         public IncidentRepository(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        public async Task<List<DemographicData>> GetDemographicDataAsync(string gender, int? minAge, int? maxAge, int reportTypeId)
+        public async Task<List<DemographicData>> GetDemographicDataAsync(string? gender, int? minAge, int? maxAge, string? priority, int reportTypeId)
         {
-                        var query = _context.Reports
+            var query = _context.Reports
                 .Include(r => r.ReportType)
                 .Include(r => r.AppUser)
                 .AsQueryable();
@@ -64,21 +63,25 @@ namespace prasApi.Repository
             return demographicData;
         }
 
-        public async Task<List<HeatMapData>> GetHeatmapDataAsync(string priority, int reportTypeId)
+        public async Task<List<HeatMapData>> GetHeatmapDataAsync(string? priority, int? reportTypeId)
         {
             var query = _context.Reports
                 .Include(r => r.ReportDetail)
                 .Include(r => r.ReportType)
                 .AsQueryable();
 
-            // Apply priority filter
+            // Apply priority filter (if priority is provided)
             if (!string.IsNullOrEmpty(priority) && Enum.TryParse<Priority>(priority, true, out var priorityEnum))
             {
                 query = query.Where(r => r.Priority == priorityEnum);
             }
+            // If priority is null, no filtering on priority is applied
 
-            // Apply report type filter
-            query = query.Where(r => r.ReportType.Id == reportTypeId);
+            // Apply report type filter (if reportTypeId is provided)
+            if (reportTypeId.HasValue)
+            {
+                query = query.Where(r => r.ReportType.Id == reportTypeId.Value);
+            }
 
             // Group the data
             var heatmapData = await query
@@ -88,55 +91,90 @@ namespace prasApi.Repository
                     Latitude = g.Key.Latitude,
                     Longitude = g.Key.Longitude,
                     ReportTypeId = g.Key.Id,
-                    IncidentCount = g.Count()
                 })
                 .ToListAsync();
 
             return heatmapData;
         }
 
-        public async Task<List<IncidentRateData>> GetIncidentRateDataAsync(string state, int reportTypeId, string priority, DateTime? startDate, DateTime? endDate)
+        public async Task<List<IncidentRateData>> GetIncidentRateDataAsync(
+            string timeRange = "daily",
+            string state = "",
+            int? reportTypeId = null,
+            string dateFilterType = "submissionDate",
+            DateTime? startDate = null,
+            DateTime? endDate = null)
         {
-                        var query = _context.Reports
+            var query = _context.Reports
                 .Include(r => r.ReportDetail)
-                .Include(r => r.ReportType)
                 .AsQueryable();
 
-            // Apply filters
-            if (!string.IsNullOrEmpty(state))
+            // Filter by state
+            if (!string.IsNullOrEmpty(state) && state != "All States")
             {
                 query = query.Where(r => r.ReportDetail.State == state);
             }
 
-            query = query.Where(r => r.ReportType.Id == reportTypeId);
-
-            if (!string.IsNullOrEmpty(priority) && Enum.TryParse<Priority>(priority, true, out var priorityEnum))
+            // Filter by ReportTypeId
+            if (reportTypeId.HasValue)
             {
-                query = query.Where(r => r.Priority == priorityEnum);
+                query = query.Where(r => r.ReportDetail.ReportTypeId == reportTypeId.Value);
             }
 
-            if (startDate.HasValue)
+            // Date filter logic
+            if (startDate.HasValue && endDate.HasValue)
             {
-                query = query.Where(r => r.ReportDetail.Date >= startDate.Value);
+                var start = startDate.Value.ToUniversalTime();
+                var end = endDate.Value.ToUniversalTime();
+
+                if (dateFilterType == "date")
+                {
+                    query = query.Where(r => r.ReportDetail.Date >= start && r.ReportDetail.Date <= end);
+                }
+                else if (dateFilterType == "submissionDate")
+                {
+                    query = query.Where(r => r.CreatedAt >= start && r.CreatedAt <= end);
+                }
+            }
+            else
+            {
+                if (timeRange == "daily")
+                {
+                    var now = DateTime.UtcNow.Date;
+                    query = query.Where(r => r.ReportDetail.Date >= now);
+                }
+                else if (timeRange == "weekly")
+                {
+                    var now = DateTime.UtcNow.Date;
+                    var startOfWeek = now.AddDays(-7);
+                    query = query.Where(r => r.ReportDetail.Date >= startOfWeek && r.ReportDetail.Date <= now);
+                }
+                else if (timeRange == "monthly")
+                {
+                    var now = DateTime.UtcNow.Date;
+                    var startOfMonth = now.AddMonths(-1);
+                    query = query.Where(r => r.ReportDetail.Date >= startOfMonth && r.ReportDetail.Date <= now);
+                }
             }
 
-            if (endDate.HasValue)
-            {
-                query = query.Where(r => r.ReportDetail.Date <= endDate.Value);
-            }
-
-            // Group by date and report type
+            // Group and project the data
             var incidentRateData = await query
-                .GroupBy(r => new { r.ReportDetail.Date.Date, r.ReportType.Id })
+                .GroupBy(r => new
+                {
+                    Date = r.ReportDetail.Date.Date,
+                    ReportTypeId = r.ReportType.Id
+                })
                 .Select(g => new IncidentRateData
                 {
-                    Date = g.Key.Date,
-                    ReportTypeId = g.Key.Id,
+                    ReportTypeId = g.Key.ReportTypeId,
+                    ReportTypeName = g.First().ReportType.Name,
                     IncidentCount = g.Count()
                 })
                 .ToListAsync();
 
             return incidentRateData;
         }
+
+
     }
 }

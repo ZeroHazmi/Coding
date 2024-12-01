@@ -8,9 +8,9 @@ namespace prasApi.Interfaces
 {
     public interface IIncidentRepository
     {
-        Task<List<DemographicData>> GetDemographicDataAsync(string gender, int? minAge, int? maxAge, int reportTypeId);
-        Task<List<HeatMapData>> GetHeatmapDataAsync(string priority, int reportTypeId);
-        Task<List<IncidentRateData>> GetIncidentRateDataAsync(string state, int reportTypeId, string priority, DateTime? startDate, DateTime? endDate);
+        Task<List<DemographicData>> GetDemographicDataAsync(string? gender, int? minAge, int? maxAge, string? priority, int reportTypeId);
+        Task<List<HeatMapData>> GetHeatmapDataAsync(string? priority, int? reportTypeId);
+        Task<List<IncidentRateData>> GetIncidentRateDataAsync(string? timeRange, string? location, int? reportTypeId, string? dateFilterType, DateTime? startDate, DateTime? endDate);
 
     }
 }

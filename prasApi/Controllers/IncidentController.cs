@@ -1,23 +1,129 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using prasApi.Interfaces;
+using prasApi.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace prasApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/incident")]
     public class IncidentController : ControllerBase
     {
-        private readonly IReportRepository _reportRepository;
-        private readonly IReportDetailRepository _reportDetailRepository;
+        private readonly IIncidentRepository _incidentRepository;
 
-        public IncidentController(IReportRepository reportRepository, IReportDetailRepository reportDetailRepository)
+        // Constructor to inject the IncidentRepository dependency
+        public IncidentController(IIncidentRepository incidentRepository)
         {
-            _reportRepository = reportRepository;
-            _reportDetailRepository = reportDetailRepository;
+            _incidentRepository = incidentRepository;
         }
+
+        // Endpoint to get demographic data
+        [HttpGet("demographics")]
+        public async Task<IActionResult> GetDemographicData(
+            [FromQuery] string? gender,
+            [FromQuery] int? minAge,
+            [FromQuery] int? maxAge,
+            [FromQuery] string? priority,
+            [FromQuery] int reportTypeId)
+        {
+            try
+            {
+                // Get demographic data based on the filters
+                var demographicData = await _incidentRepository.GetDemographicDataAsync(gender, minAge, maxAge, priority, reportTypeId);
+
+                // Return the data if found
+                if (demographicData == null || demographicData.Count == 0)
+                {
+                    return NotFound("No demographic data found for the provided filters.");
+                }
+
+                return Ok(demographicData);
+            }
+            catch (Exception ex)
+            {
+                // Handle any exceptions and return an internal server error
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        // Endpoint to get heatmap data
+        [HttpGet("heatmap")]
+        public async Task<IActionResult> GetHeatmapData(
+            [FromQuery] string? priority,
+            [FromQuery] string? reportTypeId)  // Changed to string for flexibility
+        {
+            try
+            {
+                // Initialize reportTypeId to null for flexibility
+                int? reportTypeIdInt = null;
+
+                // If reportTypeId is provided and it's not "all", try to parse it
+                if (!string.IsNullOrEmpty(reportTypeId))
+                {
+                    if (reportTypeId.Equals("all", StringComparison.OrdinalIgnoreCase))
+                    {
+                        reportTypeIdInt = null; // "all" means no filter
+                    }
+                    else if (int.TryParse(reportTypeId, out int parsedReportTypeId))
+                    {
+                        reportTypeIdInt = parsedReportTypeId; // Valid integer, use it
+                    }
+                    else
+                    {
+                        return BadRequest("Invalid reportTypeId provided.");
+                    }
+                }
+
+                // Get heatmap data based on priority and report type
+                var heatmapData = await _incidentRepository.GetHeatmapDataAsync(priority, reportTypeIdInt);
+
+                // Return the data if found
+                if (heatmapData == null || heatmapData.Count == 0)
+                {
+                    return NotFound("No heatmap data found for the provided filters.");
+                }
+
+                return Ok(heatmapData);
+            }
+            catch (Exception ex)
+            {
+                // Handle any exceptions and return an internal server error
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        // Endpoint to get incident rate data
+        [HttpGet("incident-rates")]
+        public async Task<IActionResult> GetIncidentRateData(
+            [FromQuery] string? state,
+            [FromQuery] int? reportTypeId,  // Made reportTypeId optional (int?)
+            [FromQuery] string? priority,
+            [FromQuery] string? timeRange,  // Added timeRange parameter
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate)
+        {
+            try
+            {
+                // Get incident rate data based on the provided filters, including timeRange
+                var incidentRateData = await _incidentRepository.GetIncidentRateDataAsync(
+                    timeRange, state, reportTypeId, priority, startDate, endDate);
+
+                // Return the data if found
+                if (incidentRateData == null || incidentRateData.Count == 0)
+                {
+                    return NotFound("No incident rate data found for the provided filters.");
+                }
+
+                return Ok(incidentRateData);
+            }
+            catch (Exception ex)
+            {
+                // Handle any exceptions and return an internal server error
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
     }
 }

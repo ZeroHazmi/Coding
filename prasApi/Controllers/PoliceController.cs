@@ -170,55 +170,61 @@ namespace prasApi.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpGet("all")]
-        public async Task<IActionResult> GetAll([FromQuery] string? gender = null)
+        public async Task<IActionResult> GetUsers([FromQuery] string? search, [FromQuery] string? gender, [FromQuery] string? sortOrder = "asc")
         {
-            try
-            {
-                // Get all users with the "Police" role
-                var users = await _userManager.Users.ToListAsync();
-                var policeUsers = users
+            // Retrieve all users
+            var users = await _userManager.Users.ToListAsync();
+            var policeUsers = users
                     .Where(u => _userManager.GetRolesAsync(u).Result.Contains("Police"))
                     .ToList();
 
-                if (policeUsers == null || !policeUsers.Any())
-                {
-                    return NotFound("No police users found.");
-                }
-
-                // Apply gender filter if provided
-                if (!string.IsNullOrWhiteSpace(gender) && gender.ToLower() != "all")
-                {
-                    // Ensure gender matches the enum values
-                    if (Enum.TryParse(typeof(Gender), gender, true, out var genderEnum))
-                    {
-                        // Filter police users by gender
-                        policeUsers = policeUsers
-                            .Where(user => user.Gender == (Gender)genderEnum)
-                            .ToList();
-                    }
-                    else
-                    {
-                        return BadRequest($"Invalid gender value: {gender}");
-                    }
-                }
-
-                // Map the users to a list of PoliceDto
-                var policeDtos = policeUsers.Select(u => new PoliceDto
-                {
-                    Id = u.Id,
-                    Name = u.Name,
-                    IcNumber = u.IcNumber,
-                    Email = u.Email,
-                    Gender = u.Gender
-                    // You can add more properties if needed
-                }).ToList();
-
-                return Ok(policeDtos);
-            }
-            catch (Exception ex)
+            // Apply search filter if provided
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                return StatusCode(500, ex.Message);
+                search = search.ToLower();
+                policeUsers = policeUsers.Where(user =>
+                    (!string.IsNullOrEmpty(user.UserName) && user.UserName.ToLower().Contains(search)) ||
+                    (!string.IsNullOrEmpty(user.Name) && user.Name.ToLower().Contains(search))
+                ).ToList();
             }
+
+            // Apply gender filter if provided
+            if (!string.IsNullOrWhiteSpace(gender) && gender.ToLower() != "all")
+            {
+                // Parse the gender string into the Gender enum
+                if (Enum.TryParse(typeof(Gender), gender, true, out var genderEnum))
+                {
+                    policeUsers = policeUsers.Where(user => user.Gender == (Gender)genderEnum).ToList();
+                }
+                else
+                {
+                    return BadRequest($"Invalid gender value: {gender}");
+                }
+            }
+
+            // Apply sorting based on the 'sortOrder' parameter
+            if (sortOrder!.ToLower() == "desc")
+            {
+                policeUsers = policeUsers.OrderByDescending(user => user.Name).ToList();
+            }
+            else // Default to ascending
+            {
+                policeUsers = policeUsers.OrderBy(user => user.Name).ToList();
+            }
+            // Map the users to a list of PoliceDto
+            var policeDtos = policeUsers.Select(u => new PoliceDto
+            {
+                Id = u.Id,
+                Username = u.UserName,
+                Name = u.Name,
+                IcNumber = u.IcNumber,
+                Email = u.Email,
+                Gender = u.Gender
+                // You can add more properties if needed
+            }).ToList();
+
+            return Ok(policeDtos);
         }
+
     }
 }

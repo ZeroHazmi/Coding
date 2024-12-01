@@ -106,6 +106,7 @@ builder.Services.AddScoped<IReportTypeRepository, ReportTypeRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportDetailRepository, ReportDetailRepository>();
 builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+builder.Services.AddScoped<IIncidentRepository, IncidentRepository>();
 
 var app = builder.Build();
 

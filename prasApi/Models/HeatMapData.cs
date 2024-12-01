@@ -10,6 +10,5 @@ namespace prasApi.Models
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public int ReportTypeId { get; set; }
-        public int IncidentCount { get; set; }
     }
 }
