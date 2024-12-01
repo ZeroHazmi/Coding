@@ -20,31 +20,31 @@ namespace prasApi.Controllers
         }
 
         // Endpoint to get demographic data
-        [HttpGet("demographics")]
+        [HttpGet("demographic-data")]
         public async Task<IActionResult> GetDemographicData(
-            [FromQuery] string? gender,
-            [FromQuery] int? minAge,
-            [FromQuery] int? maxAge,
-            [FromQuery] string? priority,
-            [FromQuery] int reportTypeId)
+            string? gender,
+            int? minAge,
+            int? maxAge,
+            string? priority,
+            string? ageRange,
+            int reportTypeId) // Added reportTypeId as a required parameter
         {
             try
             {
-                // Get demographic data based on the filters
-                var demographicData = await _incidentRepository.GetDemographicDataAsync(gender, minAge, maxAge, priority, reportTypeId);
-
-                // Return the data if found
-                if (demographicData == null || demographicData.Count == 0)
-                {
-                    return NotFound("No demographic data found for the provided filters.");
-                }
-
+                var demographicData = await _incidentRepository.GetDemographicDataAsync(
+                    gender,
+                    minAge,
+                    maxAge,
+                    priority,
+                    ageRange,
+                    reportTypeId // Pass the reportTypeId
+                );
                 return Ok(demographicData);
             }
             catch (Exception ex)
             {
-                // Handle any exceptions and return an internal server error
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // Log the exception
+                return StatusCode(500, "An error occurred while retrieving demographic data");
             }
         }
 

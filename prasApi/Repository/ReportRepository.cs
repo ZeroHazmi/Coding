@@ -36,12 +36,17 @@ namespace prasApi.Repository
             return report;
         }
 
-        public async Task<List<Report>> GetAllAsync(Status? status = null, Priority? priority = null, DateTime? createdDate = null, string sortOrder = "asc")
+        public async Task<List<Report>> GetAllAsync(string? search, Status? status = null, Priority? priority = null, string sortOrder = "asc", string sortPriority = "asc")
         {
             // Start with the base query
             var query = _context.Reports.AsQueryable();
 
             // Apply filters based on provided parameters
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(r => r.ReportType.Name.Contains(search) || r.ReportType.Description.Contains(search));
+            }
+
             if (status.HasValue)
             {
                 query = query.Where(r => r.Status == status.Value);
@@ -60,6 +65,16 @@ namespace prasApi.Repository
             else
             {
                 query = query.OrderBy(r => r.CreatedAt);
+            }
+
+            // Apply sorting by Priority in ascending or descending order
+            if (sortOrder.ToLower() == "desc")
+            {
+                query = query.OrderByDescending(r => r.Priority);
+            }
+            else
+            {
+                query = query.OrderBy(r => r.Priority);
             }
 
             // Execute the query and return the filtered list

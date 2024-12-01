@@ -111,12 +111,11 @@ builder.Services.AddScoped<IIncidentRepository, IncidentRepository>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Production API V1");
-    options.RoutePrefix = string.Empty;
-});
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 // Enable CORS for the AllowAll policy
 app.UseCors("AllowAll");

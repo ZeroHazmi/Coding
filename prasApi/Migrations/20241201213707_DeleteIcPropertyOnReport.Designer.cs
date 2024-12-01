@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using prasApi.Data;
@@ -11,9 +12,11 @@ using prasApi.Data;
 namespace prasApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241201213707_DeleteIcPropertyOnReport")]
+    partial class DeleteIcPropertyOnReport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,19 +53,19 @@ namespace prasApi.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "fe201249-d3f7-47cf-b808-561f44481526",
+                            Id = "946648d2-ab1b-4451-9d1f-87bad65078e4",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
                         new
                         {
-                            Id = "ab5de88c-ff0e-48d8-97ca-c9a5171580ac",
+                            Id = "a99da1e4-03f4-472c-a75f-4cd66cbbecbd",
                             Name = "Police",
                             NormalizedName = "POLICE"
                         },
                         new
                         {
-                            Id = "2a810f47-a561-43cf-aaf2-449e762b6cea",
+                            Id = "477f7f7f-9da9-48ae-84e0-ef1bb085d308",
                             Name = "User",
                             NormalizedName = "USER"
                         });
@@ -379,10 +382,6 @@ namespace prasApi.Migrations
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ExtraInformation")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<string>("FieldValue")
                         .IsRequired()

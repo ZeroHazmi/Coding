@@ -119,27 +119,32 @@ namespace prasApi.Controllers
             return Ok(userDtos);
         }
 
-        [HttpGet("getIcNumber/{IcNumber}")]
-        public async Task<IActionResult> GetUserByIcNumber(string IcNumber)
+        [HttpGet("getIcNumber")]
+        public async Task<IActionResult> GetUsersByIcNumber([FromQuery] string icnumber)
         {
-            if (string.IsNullOrEmpty(IcNumber))
+            if (string.IsNullOrEmpty(icnumber))
             {
                 return BadRequest("IC Number is required.");
             }
 
-            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.IcNumber == IcNumber);
+            // Perform a search for users with IC numbers containing the input string
+            var users = await _userManager.Users
+                .Where(u => u.IcNumber != null && u.IcNumber.Contains(icnumber))
+                .ToListAsync();
 
-            if (user == null)
+            if (!users.Any())
             {
-                return NotFound(new { Message = "User not found" });
+                return NotFound(new { Message = "No matching users found" });
             }
 
-            // Return the user details (you can customize the fields as needed)
-            var userDto = new IcNumberDto
+            // Map the result to a simplified DTO for autocomplete
+            var userDtos = users.Select(user => new IcNumberDto
             {
-                userId = user.Id
-            };
-            return Ok(userDto);
+                IcNumber = user.IcNumber,   // Match TypeScript `icNumber` field
+                userId = user.Id,    // Include user ID for any subsequent selections
+            }).ToList();
+
+            return Ok(userDtos);
         }
 
         [HttpPost("login")]

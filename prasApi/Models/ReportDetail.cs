@@ -19,6 +19,7 @@ namespace prasApi.Models
         public string Audio { get; set; } = string.Empty;
         public string Image { get; set; } = string.Empty;
         public string Transcript { get; set; } = string.Empty;
+        public string ExtraInformation { get; set; } = string.Empty;
 
         // Navigation Properties
         public ReportType ReportType { get; set; }

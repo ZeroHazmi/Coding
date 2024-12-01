@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Newtonsoft.Json;
 using prasApi.Dtos.Report;
 using prasApi.Interfaces;
 using prasApi.Mappers;
@@ -32,9 +33,9 @@ namespace prasApi.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetAll(
+            [FromQuery] string? search,
             [FromQuery] string? status = null,
             [FromQuery] string? priority = null,
-            [FromQuery] DateTime? createdDate = null,
             [FromQuery] string sortOrder = "asc")
         {
             // Parse the status and priority strings into enums if they are provided
@@ -52,7 +53,7 @@ namespace prasApi.Controllers
             }
 
             // Retrieve all reports based on the filters and sort order
-            var reports = await _reportRepository.GetAllAsync(parsedStatus, parsedPriority, createdDate, sortOrder);
+            var reports = await _reportRepository.GetAllAsync(search, parsedStatus, parsedPriority, sortOrder);
 
             // Map the filtered reports to DTOs
             var reportDtos = reports.Select(x => x.ToReportDto());
@@ -76,86 +77,66 @@ namespace prasApi.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] ReportCreateDto reportCreateDto)
         {
-            // Validate the incoming DTO
-            if (reportCreateDto == null || reportCreateDto.ReportDetail == null)
+            try
             {
-                return BadRequest("Invalid report data.");
-            }
-
-            // Get the current logged-in user's username from claims
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get user ID from the JWT token
-
-            // Get the user's roles from claims
-            var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
-
-            // Retrieve all users in the "Police" role
-            var policeOfficers = await _userManager.GetUsersInRoleAsync("Police");
-
-            if (policeOfficers.Count == 0)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, "No police officers available to assign.");
-            }
-
-            // Assign a random police officer to handle the report
-            string assignedOfficerId = policeOfficers[new Random().Next(policeOfficers.Count)].Id;
-
-            // Initialize the IC number
-            string icNumber = null;
-
-            if (roles.Contains("Police"))
-            {
-                // If a police officer is submitting the report, the IC number may be required
-                if (string.IsNullOrWhiteSpace(reportCreateDto.IcNumber))
+                if (reportCreateDto == null || reportCreateDto.ReportDetail == null)
                 {
-                    return BadRequest("IC number is required for reports submitted at the police station.");
+                    return BadRequest("Invalid report data.");
                 }
-                else
+
+                // Log received DTO
+                Console.WriteLine($"ReportCreateDto: {JsonConvert.SerializeObject(reportCreateDto)}");
+
+                // Assign random police officer
+                var policeOfficers = await _userManager.GetUsersInRoleAsync("Police");
+                if (policeOfficers.Count == 0)
                 {
-                    icNumber = reportCreateDto.IcNumber ?? string.Empty;
+                    return StatusCode(StatusCodes.Status500InternalServerError, "No police officers available.");
                 }
+
+                string assignedOfficerId = policeOfficers[new Random().Next(policeOfficers.Count)].Id;
+
+                var reportDetail = new ReportDetail
+                {
+                    ReportTypeId = reportCreateDto.ReportDetail.ReportTypeId,
+                    Date = reportCreateDto.ReportDetail.Date,
+                    Time = reportCreateDto.ReportDetail.Time,
+                    Address = reportCreateDto.ReportDetail.Address,
+                    Latitude = reportCreateDto.ReportDetail.Latitude,
+                    Longitude = reportCreateDto.ReportDetail.Longitude,
+                    State = reportCreateDto.ReportDetail.State,
+                    FieldValue = reportCreateDto.ReportDetail.FieldValue,
+                    Audio = reportCreateDto.ReportDetail.Audio,
+                    Image = reportCreateDto.ReportDetail.Image,
+                    Transcript = reportCreateDto.ReportDetail.Transcript
+                };
+
+                var createdReportDetail = await _reportDetailRepository.CreateAsync(reportDetail);
+
+                if (createdReportDetail == null)
+                {
+                    throw new Exception("Failed to create report detail.");
+                }
+
+                var report = new Report
+                {
+                    UserId = reportCreateDto.UserId,
+                    ReportTypeId = reportCreateDto.ReportTypeId,
+                    Status = reportCreateDto.Status,
+                    Priority = reportCreateDto.Priority,
+                    AppUserId = assignedOfficerId,
+                    ReportDetailId = createdReportDetail.Id,
+                };
+
+                var createdReport = await _reportRepository.CreateAsync(report);
+
+                return CreatedAtAction(nameof(GetById), new { id = createdReport.Id }, createdReport);
             }
-            else if (roles.Contains("User"))
+            catch (Exception ex)
             {
-                // If the user is submitting the report, assign IC number if provided
-                icNumber = reportCreateDto.IcNumber;
+                Console.WriteLine($"Error: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the report.");
             }
-
-            // Create the ReportDetail from DTO
-            var reportDetail = new ReportDetail
-            {
-                ReportTypeId = reportCreateDto.ReportDetail.ReportTypeId,
-                Date = reportCreateDto.ReportDetail.Date,
-                Time = reportCreateDto.ReportDetail.Time,
-                Address = reportCreateDto.ReportDetail.Address,  // Ensure Address is passed in DTO
-                Latitude = reportCreateDto.ReportDetail.Latitude,
-                Longitude = reportCreateDto.ReportDetail.Longitude,
-                State = reportCreateDto.ReportDetail.State,
-                FieldValue = reportCreateDto.ReportDetail.FieldValue,
-                Audio = reportCreateDto.ReportDetail.Audio,
-                Image = reportCreateDto.ReportDetail.Image,
-                Transcript = reportCreateDto.ReportDetail.Transcript
-            };
-
-            // Create the ReportDetail in the database
-            var createdReportDetail = await _reportDetailRepository.CreateAsync(reportDetail);
-
-            // Create the Report object from the DTO and associate with created ReportDetail
-            var report = new Report
-            {
-                UserId = userId,  // User ID (could be null for anonymous users)
-                ReportTypeId = reportCreateDto.ReportTypeId,
-                Status = reportCreateDto.Status,
-                Priority = reportCreateDto.Priority,
-                AppUserId = assignedOfficerId,  // The officer handling the report
-                ReportDetailId = createdReportDetail.Id,
-                IcNumber = icNumber  // Set the IC number if available
-            };
-
-            // Create the Report in the database
-            var createdReport = await _reportRepository.CreateAsync(report);
-
-            // Return the created report object with a CreatedAtAction response
-            return CreatedAtAction(nameof(GetById), new { id = createdReport.Id }, createdReport);
         }
 
 

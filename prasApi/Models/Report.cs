@@ -16,9 +16,6 @@ namespace prasApi.Models
         public Priority Priority { get; set; } = Priority.Low;
         public string AppUserId { get; set; } = string.Empty; // Police officer ID
 
-        // Nullable IC number for unregistered users
-        public string? IcNumber { get; set; }
-
         // Navigation Properties
         public AppUser AppUser { get; set; }
         public ReportType ReportType { get; set; }

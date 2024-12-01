@@ -18,51 +18,77 @@ namespace prasApi.Repository
             _context = context;
         }
 
-        public async Task<List<DemographicData>> GetDemographicDataAsync(string? gender, int? minAge, int? maxAge, string? priority, int reportTypeId)
+        public async Task<List<DemographicData>> GetDemographicDataAsync(
+            string? gender,
+            int? minAge,
+            int? maxAge,
+            string? priority,
+            string? ageRange,
+            int reportTypeId)
         {
             var query = _context.Reports
                 .Include(r => r.ReportType)
                 .Include(r => r.AppUser)
                 .AsQueryable();
 
-            // Apply gender filter
+            // Validate that AppUser is not null
+            query = query.Where(r => r.AppUser != null);
+
+            // Gender filter
             if (!string.IsNullOrEmpty(gender) && Enum.TryParse<Gender>(gender, true, out var genderEnum))
             {
                 query = query.Where(r => r.AppUser.Gender == genderEnum);
             }
 
-            // Calculate age based on birthdate and apply minAge and maxAge filters
-            if (minAge.HasValue || maxAge.HasValue)
+            // Age filtering
+            var today = DateTime.UtcNow;
+            if (ageRange == "All")
             {
-                var today = DateTime.UtcNow;
+                // No age filtering
+            }
+            else
+            {
                 query = query.Where(r =>
-                    (!minAge.HasValue || today.Year - r.AppUser.Birthday.Year >= minAge) &&
-                    (!maxAge.HasValue || today.Year - r.AppUser.Birthday.Year <= maxAge));
+                    (!minAge.HasValue || r.AppUser.Birthday >= DateOnly.FromDateTime(today.AddYears(-(minAge.Value)))) &&
+                    (!maxAge.HasValue || r.AppUser.Birthday <= DateOnly.FromDateTime(today.AddYears(-(maxAge.Value))))
+                );
             }
 
-            // Apply report type filter
-            query = query.Where(r => r.ReportType.Id == reportTypeId);
+            // If reportTypeId is provided, filter by report type
+            if (reportTypeId > 0)
+            {
+                query = query.Where(r => r.ReportType.Id == reportTypeId);
+            }
 
-            // Group the data
+            // Priority filter
+            if (!string.IsNullOrEmpty(priority) && Enum.TryParse<Priority>(priority, true, out var priorityEnum))
+            {
+                query = query.Where(r => r.Priority == priorityEnum);
+            }
+
+            // Demographic data aggregation
             var demographicData = await query
                 .GroupBy(r => new
                 {
                     Gender = r.AppUser.Gender,
-                    Age = DateTime.UtcNow.Year - r.AppUser.Birthday.Year,
+                    Age = today.Year - r.AppUser.Birthday.Year, // Always calculate age
+                    IncidentType = r.ReportType.Name,
+                    Priority = r.Priority,
                     ReportTypeId = r.ReportType.Id
                 })
                 .Select(g => new DemographicData
                 {
                     Gender = g.Key.Gender.ToString(),
-                    Age = g.Key.Age,
+                    Age = ageRange == "All" ? 0 : g.Key.Age,
                     ReportTypeId = g.Key.ReportTypeId,
+                    ReportTypeName = g.Key.IncidentType,
+                    Priority = g.Key.Priority,
                     IncidentCount = g.Count()
                 })
                 .ToListAsync();
 
             return demographicData;
         }
-
         public async Task<List<HeatMapData>> GetHeatmapDataAsync(string? priority, int? reportTypeId)
         {
             var query = _context.Reports
@@ -98,10 +124,10 @@ namespace prasApi.Repository
         }
 
         public async Task<List<IncidentRateData>> GetIncidentRateDataAsync(
-            string timeRange = "daily",
-            string state = "",
+            string? timeRange = "daily",
+            string? state = "",
             int? reportTypeId = null,
-            string dateFilterType = "submissionDate",
+            string? dateFilterType = "submissionDate",
             DateTime? startDate = null,
             DateTime? endDate = null)
         {
