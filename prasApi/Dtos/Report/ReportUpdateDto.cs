@@ -6,11 +6,10 @@ using prasApi.Models;
 
 namespace prasApi.Dtos.Report
 {
-    public class ReportUserDto
+    public class ReportUpdateDto
     {
-        public int Id { get; set; }
-        public string ReportTypeName { get; set; } = string.Empty;
-        public DateTime CreateAt { get; set; }
         public Status Status { get; set; }
+        public Priority Priority { get; set; }
+        public string ExtraInformation { get; set; } = string.Empty;
     }
 }

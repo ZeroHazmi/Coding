@@ -22,10 +22,10 @@ namespace prasApi.Controllers
         // Endpoint to get demographic data
         [HttpGet("demographic-data")]
         public async Task<IActionResult> GetDemographicData(
-            string? gender,
+            Gender? gender,
             int? minAge,
             int? maxAge,
-            string? priority,
+            Priority? priority,
             string? ageRange,
             int reportTypeId) // Added reportTypeId as a required parameter
         {

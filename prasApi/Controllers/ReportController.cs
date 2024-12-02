@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.ObjectPool;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
@@ -36,11 +37,11 @@ namespace prasApi.Controllers
         public async Task<IActionResult> GetAll(
             [FromQuery] string? search,
             [FromQuery] string? userId,
+            [FromQuery] string? policeId,
             [FromQuery] string? status = null,
             [FromQuery] string? priority = null,
             [FromQuery] string sortOrder = "asc")
         {
-            // Parse the status and priority strings into enums if they are provided
             Status? parsedStatus = null;
             Priority? parsedPriority = null;
 
@@ -54,36 +55,54 @@ namespace prasApi.Controllers
                 parsedPriority = priorityValue;
             }
 
-            // Retrieve all reports based on the filters and sort order
-            var reports = await _reportRepository.GetAllAsync(search, userId, parsedStatus, parsedPriority, sortOrder);
+            var reports = await _reportRepository.GetAllAsync(search, userId, policeId, parsedStatus, parsedPriority, sortOrder);
 
-            // Map the filtered reports to DTOs
-            var reportDtos = reports.Select(x => x.ToReportDto()).ToList();
-
-            // If userId is provided, return user-specific report DTOs
-            if (!string.IsNullOrEmpty(userId))
+            if (!string.IsNullOrEmpty(policeId))
             {
-                var userReportDto = reports
-                    .Select(x => x.ToUserReportDto())
-                    .Where(dto => dto != null) // Filter out any null DTOs
+                var policeReportDtos = reports
+                    .Where(r => r.AppUserId == policeId)
+                    .Select(x => x.ToReportPoliceDto())
+                    .Where(dto => dto != null)
                     .ToList();
-                return Ok(userReportDto);
+                return Ok(policeReportDtos);
             }
 
-            // Return the general report DTOs
-            return Ok(reportDtos);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var userReportDtos = reports
+                    .Where(r => r.UserId == userId)
+                    .Select(x => x.ToUserReportDto())
+                    .Where(dto => dto != null)
+                    .ToList();
+                return Ok(userReportDtos);
+            }
+
+            return Ok(new List<ReportUserDto>()); // Return empty if no filters match
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var reportType = await _reportRepository.GetByIdAsync(id);
-            if (reportType == null)
+            var report = await _reportRepository.GetByIdAsync(id);
+            if (report == null)
             {
                 return NotFound();
             }
+            var reportViewDto = new ReportViewDto
+            {
+                ReportId = report.Id,
+                ReportTypeName = report.ReportType?.Name ?? "Unknown",
+                DateCreated = report.CreatedAt,
+                Status = report.Status,
+                Priority = report.Priority,
+                IncidentDate = report.ReportDetail.Date,
+                IncidentTime = report.ReportDetail.Time,
+                Location = report.ReportDetail.Address,
+                Transcript = report.ReportDetail.Transcript,
+                ExtraInformation = report.ReportDetail.ExtraInformation
+            };
 
-            return Ok(reportType);
+            return Ok(reportViewDto);
         }
 
         [Authorize(Roles = "User, Police, Admin")]
@@ -153,29 +172,32 @@ namespace prasApi.Controllers
         }
 
 
-        [Authorize]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] ReportDto reportDto)
+        [Authorize(Roles = "Police")]
+        [HttpPut("put")]
+        public async Task<IActionResult> Update([FromQuery] int id, [FromBody] ReportUpdateDto updateReportDto)
         {
+            // Fetch the existing report by id
             var reportExist = await _reportRepository.GetByIdAsync(id);
             if (reportExist == null)
             {
-                return NotFound();
+                return NotFound(); // Report not found
             }
 
-            //Update the ReportType object
-            var report = new Report
-            {
-                Id = id,
-                UserId = reportDto.UserId,
-                ReportTypeId = reportDto.ReportTypeId,
-                ReportDetailId = reportDto.ReportDetailId,
-                Status = reportDto.Status,
-                Priority = reportDto.Priority
-            };
+            // Update the Report fields
+            reportExist.Status = updateReportDto.Status;
+            reportExist.Priority = updateReportDto.Priority;
 
-            var updatedReportType = await _reportRepository.UpdateAsync(id, report);
-            return Ok(updatedReportType);
+            // If ExtraInformation is provided, update it
+            if (!string.IsNullOrEmpty(updateReportDto.ExtraInformation))
+            {
+                reportExist.ReportDetail.ExtraInformation = updateReportDto.ExtraInformation;
+            }
+
+            // Call the repository's update method to save changes
+            var updatedReport = await _reportRepository.UpdateAsync(id, reportExist);
+
+            // Return the updated report
+            return Ok(updatedReport);
         }
 
         [Authorize(Roles = "Admin, Police")]

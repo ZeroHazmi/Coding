@@ -23,20 +23,28 @@ namespace prasApi.Mappers
         }
         public static ReportUserDto ToUserReportDto(this Report report)
         {
-            // Add a null check for the report itself
-            if (report == null)
-            {
-                return null;
-            }
-
             return new ReportUserDto
             {
                 Id = report.Id,
-                UserId = report.UserId,
-                ReportId = report.Id,
-                ReportTypeName = report.ReportType?.Name ?? "Unknown",
+                ReportTypeName = report.ReportType.Name,
                 CreateAt = report.CreatedAt,
                 Status = report.Status,
+            };
+
+        }
+
+        public static ReportPoliceDto ToReportPoliceDto(this Report report)
+        {
+            return new ReportPoliceDto
+            {
+                Id = report.Id,
+                UserId = report.UserId,
+                ReportTypeName = report.ReportType.Name,
+                Name = report.AppUser.Name,
+                IcNumber = report.AppUser.IcNumber,
+                DateCreated = report.CreatedAt,
+                Status = report.Status,
+                Priority = report.Priority
             };
         }
     }

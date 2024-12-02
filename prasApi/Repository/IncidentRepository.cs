@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using prasApi.Data;
+using prasApi.Dtos.Incident;
 using prasApi.Interfaces;
 using prasApi.Models;
 
@@ -19,51 +20,40 @@ namespace prasApi.Repository
         }
 
         public async Task<List<DemographicData>> GetDemographicDataAsync(
-            string? gender,
+            Gender? gender,
             int? minAge,
             int? maxAge,
-            string? priority,
+            Priority? priority,
             string? ageRange,
             int reportTypeId)
         {
+            var today = DateTime.UtcNow;
+
             var query = _context.Reports
                 .Include(r => r.ReportType)
                 .Include(r => r.AppUser)
-                .AsQueryable();
-
-            // Validate that AppUser is not null
-            query = query.Where(r => r.AppUser != null);
+                .Where(r => r.AppUser != null && r.ReportType.Id == reportTypeId);
 
             // Gender filter
-            if (!string.IsNullOrEmpty(gender) && Enum.TryParse<Gender>(gender, true, out var genderEnum))
+            if (gender.HasValue)
             {
-                query = query.Where(r => r.AppUser.Gender == genderEnum);
+                query = query.Where(r => r.AppUser.Gender == gender.Value);
             }
 
-            // Age filtering
-            var today = DateTime.UtcNow;
-            if (ageRange == "All")
-            {
-                // No age filtering
-            }
-            else
+            // Age filtering with safe conversion
+            if (ageRange != "All")
             {
                 query = query.Where(r =>
-                    (!minAge.HasValue || r.AppUser.Birthday >= DateOnly.FromDateTime(today.AddYears(-(minAge.Value)))) &&
-                    (!maxAge.HasValue || r.AppUser.Birthday <= DateOnly.FromDateTime(today.AddYears(-(maxAge.Value))))
+                    // Calculate age safely
+                    (today.Year - r.AppUser.Birthday.Year) >= (minAge ?? 0) &&
+                    (!maxAge.HasValue || (today.Year - r.AppUser.Birthday.Year) <= maxAge.Value)
                 );
             }
 
-            // If reportTypeId is provided, filter by report type
-            if (reportTypeId > 0)
-            {
-                query = query.Where(r => r.ReportType.Id == reportTypeId);
-            }
-
             // Priority filter
-            if (!string.IsNullOrEmpty(priority) && Enum.TryParse<Priority>(priority, true, out var priorityEnum))
+            if (priority.HasValue)
             {
-                query = query.Where(r => r.Priority == priorityEnum);
+                query = query.Where(r => r.Priority == priority.Value);
             }
 
             // Demographic data aggregation
@@ -71,16 +61,15 @@ namespace prasApi.Repository
                 .GroupBy(r => new
                 {
                     Gender = r.AppUser.Gender,
-                    Age = today.Year - r.AppUser.Birthday.Year, // Always calculate age
+                    Age = today.Year - r.AppUser.Birthday.Year,
                     IncidentType = r.ReportType.Name,
-                    Priority = r.Priority,
-                    ReportTypeId = r.ReportType.Id
+                    Priority = r.Priority
                 })
                 .Select(g => new DemographicData
                 {
                     Gender = g.Key.Gender.ToString(),
-                    Age = ageRange == "All" ? 0 : g.Key.Age,
-                    ReportTypeId = g.Key.ReportTypeId,
+                    Age = g.Key.Age,
+                    ReportTypeId = reportTypeId,
                     ReportTypeName = g.Key.IncidentType,
                     Priority = g.Key.Priority,
                     IncidentCount = g.Count()
@@ -183,17 +172,13 @@ namespace prasApi.Repository
                 }
             }
 
-            // Group and project the data
+            // Group by ReportTypeId and count incidents
             var incidentRateData = await query
-                .GroupBy(r => new
-                {
-                    Date = r.ReportDetail.Date.Date,
-                    ReportTypeId = r.ReportType.Id
-                })
+                .GroupBy(r => new { r.ReportType.Id, r.ReportType.Name })
                 .Select(g => new IncidentRateData
                 {
-                    ReportTypeId = g.Key.ReportTypeId,
-                    ReportTypeName = g.First().ReportType.Name,
+                    ReportTypeId = g.Key.Id,
+                    ReportTypeName = g.Key.Name,
                     IncidentCount = g.Count()
                 })
                 .ToListAsync();

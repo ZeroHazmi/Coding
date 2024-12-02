@@ -36,14 +36,19 @@ namespace prasApi.Repository
             return report;
         }
 
-        public async Task<List<Report>> GetAllAsync(string? search, string? userId, Status? status = null, Priority? priority = null, string? sortOrder = "asc", string? sortPriority = "asc")
+        public async Task<List<Report>> GetAllAsync(string? search, string? userId, string? policeId, Status? status = null, Priority? priority = null, string? sortOrder = "asc", string? sortPriority = "asc")
         {
             // Start with the base query
-            var query = _context.Reports.Include(r => r.ReportType).AsQueryable();
+            var query = _context.Reports.Include(r => r.ReportType).Include(r => r.AppUser).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(userId))
             {
                 query = query.Where(r => r.UserId == userId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(policeId))
+            {
+                query = query.Where(r => r.AppUserId == policeId);
             }
 
             // Apply filters based on provided parameters
@@ -88,17 +93,27 @@ namespace prasApi.Repository
 
         public async Task<Report?> GetByIdAsync(int id)
         {
-            return await _context.Reports.FirstOrDefaultAsync(c => c.Id == id);
+            return await _context.Reports.Include(r => r.ReportType).Include(r => r.ReportDetail).FirstOrDefaultAsync(c => c.Id == id);
         }
 
         public async Task<Report?> UpdateAsync(int id, Report report)
         {
-            var existingReport = await _context.Reports.FindAsync(report.Id);
+            // Find the existing report by the provided id
+            var existingReport = await _context.Reports.Include(r => r.ReportDetail).FirstOrDefaultAsync(r => r.Id == id);
             if (existingReport == null)
             {
-                return null;
+                return null; // Report not found
             }
 
+            // Update the fields based on the values from the provided report
+            existingReport.ReportDetail.ExtraInformation = report.ReportDetail.ExtraInformation;
+            existingReport.Status = report.Status;
+            existingReport.Priority = report.Priority;
+
+            // Save the changes to the database
+            await _context.SaveChangesAsync();
+
+            // Return the updated report
             return existingReport;
         }
     }
