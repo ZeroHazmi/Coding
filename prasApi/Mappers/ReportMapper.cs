@@ -21,5 +21,23 @@ namespace prasApi.Mappers
                 Priority = report.Priority
             };
         }
+        public static ReportUserDto ToUserReportDto(this Report report)
+        {
+            // Add a null check for the report itself
+            if (report == null)
+            {
+                return null;
+            }
+
+            return new ReportUserDto
+            {
+                Id = report.Id,
+                UserId = report.UserId,
+                ReportId = report.Id,
+                ReportTypeName = report.ReportType?.Name ?? "Unknown",
+                CreateAt = report.CreatedAt,
+                Status = report.Status,
+            };
+        }
     }
 }

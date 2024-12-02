@@ -36,10 +36,15 @@ namespace prasApi.Repository
             return report;
         }
 
-        public async Task<List<Report>> GetAllAsync(string? search, Status? status = null, Priority? priority = null, string sortOrder = "asc", string sortPriority = "asc")
+        public async Task<List<Report>> GetAllAsync(string? search, string? userId, Status? status = null, Priority? priority = null, string? sortOrder = "asc", string? sortPriority = "asc")
         {
             // Start with the base query
-            var query = _context.Reports.AsQueryable();
+            var query = _context.Reports.Include(r => r.ReportType).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                query = query.Where(r => r.UserId == userId);
+            }
 
             // Apply filters based on provided parameters
             if (!string.IsNullOrWhiteSpace(search))

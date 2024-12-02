@@ -44,7 +44,7 @@ namespace prasApi.Controllers
             catch (Exception ex)
             {
                 // Log the exception
-                return StatusCode(500, "An error occurred while retrieving demographic data");
+                return StatusCode(500, "An error occurred while retrieving demographic data: " + ex.Message);
             }
         }
 

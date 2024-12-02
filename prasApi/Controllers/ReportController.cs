@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using prasApi.Dtos.Report;
 using prasApi.Interfaces;
@@ -34,6 +35,7 @@ namespace prasApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll(
             [FromQuery] string? search,
+            [FromQuery] string? userId,
             [FromQuery] string? status = null,
             [FromQuery] string? priority = null,
             [FromQuery] string sortOrder = "asc")
@@ -53,11 +55,22 @@ namespace prasApi.Controllers
             }
 
             // Retrieve all reports based on the filters and sort order
-            var reports = await _reportRepository.GetAllAsync(search, parsedStatus, parsedPriority, sortOrder);
+            var reports = await _reportRepository.GetAllAsync(search, userId, parsedStatus, parsedPriority, sortOrder);
 
             // Map the filtered reports to DTOs
-            var reportDtos = reports.Select(x => x.ToReportDto());
+            var reportDtos = reports.Select(x => x.ToReportDto()).ToList();
 
+            // If userId is provided, return user-specific report DTOs
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var userReportDto = reports
+                    .Select(x => x.ToUserReportDto())
+                    .Where(dto => dto != null) // Filter out any null DTOs
+                    .ToList();
+                return Ok(userReportDto);
+            }
+
+            // Return the general report DTOs
             return Ok(reportDtos);
         }
 
