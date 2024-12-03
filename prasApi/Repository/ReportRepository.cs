@@ -36,7 +36,14 @@ namespace prasApi.Repository
             return report;
         }
 
-        public async Task<List<Report>> GetAllAsync(string? search, string? userId, string? policeId, Status? status = null, Priority? priority = null, string? sortOrder = "asc", string? sortPriority = "asc")
+        public async Task<List<Report>> GetAllAsync(
+            string? search,
+            string? userId,
+            string? policeId,
+            Status? status = null,
+            Priority? priority = null,
+            string? sortOrder = "asc",
+            string? sortPriority = "asc")
         {
             // Start with the base query
             var query = _context.Reports.Include(r => r.ReportType).Include(r => r.AppUser).AsQueryable();
@@ -78,18 +85,19 @@ namespace prasApi.Repository
             }
 
             // Apply sorting by Priority in ascending or descending order
-            if (sortOrder.ToLower() == "desc")
+            if (sortPriority.ToLower() == "desc")
             {
-                query = query.OrderByDescending(r => r.Priority);
+                query = ((IOrderedQueryable<Report>)query).ThenByDescending(r => r.Priority); // Add ThenBy for second sorting
             }
             else
             {
-                query = query.OrderBy(r => r.Priority);
+                query = ((IOrderedQueryable<Report>)query).ThenBy(r => r.Priority); // Add ThenBy for second sorting
             }
 
             // Execute the query and return the filtered list
             return await query.ToListAsync();
         }
+
 
         public async Task<Report?> GetByIdAsync(int id)
         {

@@ -43,11 +43,15 @@ namespace prasApi.Repository
             // Age filtering with safe conversion
             if (ageRange != "All")
             {
-                query = query.Where(r =>
-                    // Calculate age safely
-                    (today.Year - r.AppUser.Birthday.Year) >= (minAge ?? 0) &&
-                    (!maxAge.HasValue || (today.Year - r.AppUser.Birthday.Year) <= maxAge.Value)
-                );
+                if (minAge.HasValue)
+                {
+                    query = query.Where(r => (today.Year - r.AppUser.Birthday.Year) >= minAge.Value);
+                }
+
+                if (maxAge.HasValue)
+                {
+                    query = query.Where(r => (today.Year - r.AppUser.Birthday.Year) <= maxAge.Value);
+                }
             }
 
             // Priority filter
